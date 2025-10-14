@@ -19,6 +19,11 @@ def get_image_bytes() -> Optional[bytes]:
     return image.getvalue()
 
 
+@st.cache_data(ttl=3600)
+def cached_reverse_geocode(lat: float, lon: float) -> str:
+    return reverse_geocode(lat, lon)
+
+
 def main() -> None:
     load_dotenv()
     st.set_page_config(page_title="Fractal Guide", page_icon="🧭", layout="centered")
@@ -39,7 +44,7 @@ def main() -> None:
 
     place_text: Optional[str] = None
     if lat is not None and lon is not None:
-        place_text = reverse_geocode(lat, lon)
+        place_text = cached_reverse_geocode(lat, lon)
         st.success(place_text)
     else:
         st.info("Tap the button above to share your location.")
@@ -64,11 +69,19 @@ def main() -> None:
             return
 
         with st.spinner("Thinking..."):
-            reply, need_clarifier, options = summarize_context(
-                place_text=place_text,
-                user_text=user_text or "",
-                image_bytes=image_bytes,
-            )
+            try:
+                reply, need_clarifier, options = summarize_context(
+                    place_text=place_text,
+                    user_text=user_text or "",
+                    image_bytes=image_bytes,
+                )
+            except Exception as e:
+                st.error("There was an issue generating guidance. Please try again.")
+                reply, need_clarifier, options = (
+                    "I had trouble contacting services. You can retry in a moment.",
+                    False,
+                    [],
+                )
 
         st.session_state.messages.append(("assistant", reply))
         st.chat_message("assistant").write(reply)
