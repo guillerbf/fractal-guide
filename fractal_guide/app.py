@@ -33,7 +33,7 @@ def main() -> None:
 
     # Location capture
     st.subheader("Share location")
-    geo = streamlit_geolocation(key="geoloc")
+    geo = streamlit_geolocation()
     lat = geo.get("latitude") if geo else None
     lon = geo.get("longitude") if geo else None
 
