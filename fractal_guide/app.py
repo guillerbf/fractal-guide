@@ -63,7 +63,11 @@ def main() -> None:
     else:
         st.info("Tap the button above to share your location.")
 
-    # st.subheader("What are you interested in?")
+    # Render history at top; inputs remain at bottom
+    messages_container = st.container()
+    with messages_container:
+        for role, content in st.session_state.messages:
+            st.chat_message(role).write(content)
 
     # Text first, then photo toggle via checkbox
     user_text = st.text_input("Ask a question (optional)", placeholder="What's around me?")
@@ -75,14 +79,17 @@ def main() -> None:
 
     submit = st.button("Ask your AI guide", type="primary", use_container_width=True)
 
-    # Render history
-    for role, content in st.session_state.messages:
-        st.chat_message(role).write(content)
 
     if submit:
         if place_text is None:
             st.warning("Please allow location first.")
             return
+            
+        if user_text:
+            # Render user's message immediately (in the messages container) and persist
+            with messages_container:
+                st.chat_message("user").write(user_text)
+            st.session_state.messages.append(("user", user_text))
 
         with st.spinner("Thinking..."):
             try:
@@ -90,6 +97,7 @@ def main() -> None:
                     place_text=place_text,
                     user_text=user_text or "",
                     image_bytes=image_bytes,
+                    history=st.session_state.messages,
                 )
             except Exception as e:
                 st.error("There was an issue generating guidance. Please try again.")
@@ -99,16 +107,21 @@ def main() -> None:
                     [],
                 )
 
+        # Render assistant reply immediately in the messages container and persist
+        with messages_container:
+            st.chat_message("assistant").write(reply)
         st.session_state.messages.append(("assistant", reply))
-        st.chat_message("assistant").write(reply)
 
-        if need_clarifier and options:
-            st.info("Help me disambiguate:")
-            bcols = st.columns(len(options))
-            for i, opt in enumerate(options):
-                if bcols[i].button(opt):
-                    st.session_state.messages.append(("user", opt))
-                    st.rerun()
+    # New conversation: clear history
+    st.button("New conversation", on_click=lambda: st.session_state.update({"messages": []}))
+
+        # if need_clarifier and options:
+        #     st.info("Help me disambiguate:")
+        #     bcols = st.columns(len(options))
+        #     for i, opt in enumerate(options):
+        #         if bcols[i].button(opt):
+        #             st.session_state.messages.append(("user", opt))
+        #             st.rerun()
     
     # with st.expander("Privacy", expanded=False):
     #     st.write("Images and location are sent to APIs to generate responses. No data is persisted. By using this app, I consent to sending my data to APIs")

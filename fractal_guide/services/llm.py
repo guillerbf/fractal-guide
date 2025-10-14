@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import os
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Sequence
 
 from openai import OpenAI
 
@@ -31,12 +31,19 @@ def summarize_context(
     place_text: str,
     user_text: str,
     image_bytes: bytes | None,
+    history: Sequence[tuple[str, str]] | None = None,
 ) -> Tuple[str, bool, list[str]]:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return ("OpenAI API key not configured.", False, [])
 
     client = OpenAI(api_key=api_key)
+
+    # Build prior textual messages for conversation continuity
+    messages: list[dict] = [{"role": "system", "content": SYSTEM_RULES}]
+    if history:
+        for role, content_text in history[-8:]:
+            messages.append({"role": role, "content": content_text})
 
     content: list[dict] = [
         {"type": "text", "text": f"Context: {place_text}\nUser: {user_text or 'Describe briefly what to notice here.'}"}
@@ -45,24 +52,18 @@ def summarize_context(
     if img:
         content.append(img)
 
+    messages.append({"role": "user", "content": content})
+
     response = client.chat.completions.create(
         model="gpt-4o",
-        messages=[
-            {"role": "system", "content": SYSTEM_RULES},
-            {"role": "user", "content": content},
-        ],
+        messages=messages,
         temperature=0.6,
         max_tokens=400,
     )
 
     text = response.choices[0].message.content or ""
 
-    # Heuristic for clarifier need; real logic can be improved later
-    need_clarifier = "clarify" in text.lower() or "which one" in text.lower()
-    options: list[str] = []
-    if need_clarifier:
-        options = ["Option A", "Option B"]
-
-    return (text.strip(), need_clarifier, options)
+    # Conversation mode, no disambiguation UI
+    return (text.strip(), False, [])
 
 
