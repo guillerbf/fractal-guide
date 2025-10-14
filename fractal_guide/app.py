@@ -17,7 +17,7 @@ def get_image_bytes() -> Optional[bytes]:
     # Only render camera when the user opted in via the UI toggle
     if not st.session_state.get("show_camera", False):
         return None
-    image = st.camera_input("Take a photo (optional)", key="camera")
+    image = st.camera_input("Take a photo", key="camera")
     if image is None:
         return None
     return image.getvalue()
@@ -31,15 +31,13 @@ def cached_reverse_geocode(lat: float, lon: float) -> str:
 def main() -> None:
     load_dotenv()
     st.set_page_config(page_title="Fractal Guide", page_icon="🧭", layout="centered")
-    st.title("Fractal Guide")
-    st.caption("A lightweight local guide using your location and photo")
+    st.title("Fractally")
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "show_camera" not in st.session_state:
         st.session_state.show_camera = False
 
-    # Location capture
 
     # Try live geolocation first; fallback to streamlit_geolocation
     lat = None
@@ -66,24 +64,15 @@ def main() -> None:
 
     st.subheader("What are you interested in?")
 
-    # Photo capture toggled by user action
-    colp1, colp2 = st.columns(2)
-    with colp1:
-        if not st.session_state.show_camera:
-            if st.button("Add photo"):
-                st.session_state.show_camera = True
-                st.rerun()
-        else:
-            if st.button("Hide photo"):
-                st.session_state.show_camera = False
-                st.rerun()
-    with colp2:
-        pass
-
-    image_bytes = get_image_bytes()
+    # Text first, then photo toggle via checkbox
     user_text = st.text_input("Ask a question (optional)", placeholder="What's around me?")
+    checked = st.checkbox("Add photo (optional)", value=st.session_state.get("show_camera", False))
+    if checked != st.session_state.get("show_camera", False):
+        st.session_state.show_camera = checked
+        st.rerun()
+    image_bytes = get_image_bytes()
 
-    submit = st.button("Ask your AI guide", type="primary")
+    submit = st.button("Ask your AI guide", type="primary", use_container_width=True)
 
     # Render history
     for role, content in st.session_state.messages:
