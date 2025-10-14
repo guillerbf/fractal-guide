@@ -7,13 +7,17 @@ from dotenv import load_dotenv
 
 import streamlit as st
 from streamlit_geolocation import streamlit_geolocation
+from streamlit_js_eval import get_geolocation
 
 from fractal_guide.services.geocode import reverse_geocode
 from fractal_guide.services.llm import summarize_context
 
 
 def get_image_bytes() -> Optional[bytes]:
-    image = st.camera_input("Take a photo (optional)")
+    # Only render camera when the user opted in via the UI toggle
+    if not st.session_state.get("show_camera", False):
+        return None
+    image = st.camera_input("Take a photo (optional)", key="camera")
     if image is None:
         return None
     return image.getvalue()
@@ -32,15 +36,26 @@ def main() -> None:
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
-
-    with st.expander("Privacy", expanded=False):
-        st.write("Images and location are sent to APIs to generate responses. No data is persisted.")
+    if "show_camera" not in st.session_state:
+        st.session_state.show_camera = False
 
     # Location capture
-    st.subheader("Share location")
-    geo = streamlit_geolocation()
-    lat = geo.get("latitude") if geo else None
-    lon = geo.get("longitude") if geo else None
+
+    # Try live geolocation first; fallback to streamlit_geolocation
+    lat = None
+    lon = None
+    try:
+        loc = get_geolocation()
+        if loc and "coords" in loc:
+            lat = loc["coords"].get("latitude")
+            lon = loc["coords"].get("longitude")
+    except Exception:
+        pass
+
+    if lat is None or lon is None:
+        geo = streamlit_geolocation()
+        lat = geo.get("latitude") if geo else None
+        lon = geo.get("longitude") if geo else None
 
     place_text: Optional[str] = None
     if lat is not None and lon is not None:
@@ -49,15 +64,26 @@ def main() -> None:
     else:
         st.info("Tap the button above to share your location.")
 
-    # Photo + question input
+    st.subheader("What are you interested in?")
+
+    # Photo capture toggled by user action
+    colp1, colp2 = st.columns(2)
+    with colp1:
+        if not st.session_state.show_camera:
+            if st.button("Add photo"):
+                st.session_state.show_camera = True
+                st.rerun()
+        else:
+            if st.button("Hide photo"):
+                st.session_state.show_camera = False
+                st.rerun()
+    with colp2:
+        pass
+
     image_bytes = get_image_bytes()
     user_text = st.text_input("Ask a question (optional)", placeholder="What's around me?")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        consent = st.checkbox("I consent to sending my data to APIs", value=False)
-    with col2:
-        submit = st.button("Get guidance", type="primary", disabled=not consent)
+    submit = st.button("Ask your AI guide", type="primary")
 
     # Render history
     for role, content in st.session_state.messages:
@@ -93,7 +119,9 @@ def main() -> None:
                 if bcols[i].button(opt):
                     st.session_state.messages.append(("user", opt))
                     st.rerun()
-
+    
+    with st.expander("Privacy", expanded=False):
+        st.write("Images and location are sent to APIs to generate responses. No data is persisted. By using this app, I consent to sending my data to APIs")
 
 if __name__ == "__main__":
     main()
