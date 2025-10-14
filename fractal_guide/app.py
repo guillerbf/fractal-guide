@@ -120,8 +120,8 @@ def main() -> None:
                     st.session_state.messages.append(("user", opt))
                     st.rerun()
     
-    with st.expander("Privacy", expanded=False):
-        st.write("Images and location are sent to APIs to generate responses. No data is persisted. By using this app, I consent to sending my data to APIs")
+    # with st.expander("Privacy", expanded=False):
+    #     st.write("Images and location are sent to APIs to generate responses. No data is persisted. By using this app, I consent to sending my data to APIs")
 
 if __name__ == "__main__":
     main()
