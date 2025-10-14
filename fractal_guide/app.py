@@ -32,6 +32,7 @@ def main() -> None:
     load_dotenv()
     st.set_page_config(page_title="Fractal Guide", page_icon="🧭", layout="centered")
     st.title("Fractally")
+    st.caption("Your AI local guide. Ask away and explore the city with ease.")
 
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -62,7 +63,7 @@ def main() -> None:
     else:
         st.info("Tap the button above to share your location.")
 
-    st.subheader("What are you interested in?")
+    # st.subheader("What are you interested in?")
 
     # Text first, then photo toggle via checkbox
     user_text = st.text_input("Ask a question (optional)", placeholder="What's around me?")
