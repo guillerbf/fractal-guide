@@ -18,10 +18,9 @@ def _image_part(image_bytes: bytes | None):
         return None
     b64 = base64.b64encode(image_bytes).decode("utf-8")
     return {
-        "type": "input_image",
-        "image_data": {
-            "data": b64,
-            "mime_type": "image/jpeg",
+        "type": "image_url",
+        "image_url": {
+            "url": f"data:image/jpeg;base64,{b64}",
         },
     }
 

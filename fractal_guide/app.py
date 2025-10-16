@@ -2,7 +2,7 @@ import base64
 import io
 import os
 from typing import Optional
-
+import logging
 from dotenv import load_dotenv
 
 import streamlit as st
@@ -11,6 +11,8 @@ from streamlit_js_eval import get_geolocation
 
 from fractal_guide.services.geocode import reverse_geocode
 from fractal_guide.services.llm import summarize_context
+
+logger = logging.getLogger(__name__)
 
 
 def get_image_bytes() -> Optional[bytes]:
@@ -100,6 +102,7 @@ def main() -> None:
                     history=st.session_state.messages,
                 )
             except Exception as e:
+                logger.error(f"Error generating guidance: {e}")
                 st.error("There was an issue generating guidance. Please try again.")
                 reply, need_clarifier, options = (
                     "I had trouble contacting services. You can retry in a moment.",
