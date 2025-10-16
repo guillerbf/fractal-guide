@@ -56,8 +56,7 @@ def summarize_context(
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=messages,
-        temperature=0.6,
-        max_tokens=400,
+        temperature=0.6
     )
 
     text = response.choices[0].message.content or ""
